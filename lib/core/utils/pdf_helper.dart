@@ -2,15 +2,16 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 import '../../data/database_helper.dart';
+import 'attendance_record_utils.dart';
 
 class PdfExportService {
   static Future<void> generateAttendancePdf() async {
     final pdf = pw.Document();
 
     try {
-      // 1. Fetch data using your existing method name: getAllAttendance()
-      final List<Map<String, dynamic>> localData =
-          await DatabaseHelper.instance.getAllAttendance();
+      // 1. Fetch data and consolidate (one record per date; manual_override wins)
+      final all = await DatabaseHelper.instance.getAllAttendance();
+      final localData = consolidateRecordsByDate(all);
 
       if (localData.isEmpty) {
         throw Exception("No attendance records found.");
@@ -53,13 +54,25 @@ class PdfExportService {
                   const pw.BoxDecoration(color: PdfColors.blue800),
               cellAlignment: pw.Alignment.center,
               data: localData.map((row) {
+                final punchIn = row['punch_in']?.toString();
+                final punchOut = row['punch_out']?.toString();
+                final punchInTime = punchIn != null && punchIn.length >= 16
+                    ? punchIn.substring(11, 16)
+                    : '-';
+                final punchOutTime = punchOut != null && punchOut.length >= 16
+                    ? punchOut.substring(11, 16)
+                    : '-';
+                final isOverride =
+                    (row['punch_type'] as String? ?? '') == 'manual_override';
+                final baseType = row['attendance_type']?.toString() ?? '-';
+                final type = isOverride
+                    ? (baseType != '-' ? '$baseType (Manual Override)' : 'Manual Override')
+                    : baseType;
                 return [
                   row['date']?.toString() ?? '-',
-                  row['punch_in']?.toString() ?? '-',
-                  row['punch_out']?.toString() ?? 'Pending',
-                  row['attendance_type']?.toString() ??
-                      row['punch_type'] ??
-                      '-',
+                  punchInTime,
+                  punchOutTime,
+                  type,
                   "${row['used_grace_minutes'] ?? 0}m",
                 ];
               }).toList(),

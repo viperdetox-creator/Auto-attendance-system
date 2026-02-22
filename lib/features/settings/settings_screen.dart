@@ -70,8 +70,9 @@ class _SettingsScreenState extends State<SettingsScreen>
     final themeCtrl = context.watch<ThemeController>();
     final user = FirebaseAuth.instance.currentUser;
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
-      backgroundColor: _bg,
+      backgroundColor: isDark ? _bg : Theme.of(context).scaffoldBackgroundColor,
       body: Stack(
         children: [
           _buildOrbBg(),

@@ -33,8 +33,16 @@ class _MainDashboardState extends State<MainDashboard>
   late AnimationController _appBarController;
   late Animation<double> _appBarFade;
 
-  static const _indigo = Color(0xFF3949AB);
-  static const _indigoDark = Color(0xFF1A237E);
+  // ── Palette (dark) ────────────────────────────
+  static const _bg = Color(0xFF0A0E1A);
+  static const _card = Color(0xFF1C2333);
+  static const _teal = Color(0xFF00D4B8);
+  static const _indigo = Color(0xFF6C7FE8);
+  static const _indigoDark = Color(0xFF1A2545);
+  static const _textMuted = Color(0xFF7A8BAA);
+  // ── Palette (light) ───────────────────────────
+  static const _cardLight = Color(0xFFFFFFFF);
+  static const _textMutedLight = Color(0xFF6B7280);
 
   final List<_NavItem> _navItems = const [
     _NavItem(icon: Icons.dashboard_rounded, label: 'Home'),
@@ -63,8 +71,8 @@ class _MainDashboardState extends State<MainDashboard>
       ),
     );
     _navScaleAnims = _navControllers
-        .map((c) => Tween<double>(begin: 1.0, end: 1.25).animate(
-              CurvedAnimation(parent: c, curve: Curves.elasticOut),
+        .map((c) => Tween<double>(begin: 1.0, end: 1.1).animate(
+              CurvedAnimation(parent: c, curve: Curves.easeOut),
             ))
         .toList();
 
@@ -153,27 +161,34 @@ class _MainDashboardState extends State<MainDashboard>
   Widget build(BuildContext context) {
     final user = FirebaseAuth.instance.currentUser;
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
-      backgroundColor: const Color(0xFFF0F2FF),
+      backgroundColor: isDark ? _bg : Theme.of(context).scaffoldBackgroundColor,
       extendBody: true,
 
-      // ── Animated AppBar ──────────────────────
+      // ── Animated AppBar (dark theme) ─────────
       appBar: PreferredSize(
         preferredSize: const Size.fromHeight(70),
         child: FadeTransition(
           opacity: _appBarFade,
           child: Container(
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                colors: [_indigoDark, _indigo],
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [_indigoDark, Color(0xFF0D1A35)],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
+              border: Border(
+                bottom: BorderSide(
+                  color: _indigo.withOpacity(0.2),
+                  width: 1,
+                ),
+              ),
               boxShadow: [
                 BoxShadow(
-                  color: Color(0x443949AB),
-                  blurRadius: 16,
-                  offset: Offset(0, 4),
+                  color: Color(0x33000000),
+                  blurRadius: 20,
+                  offset: const Offset(0, 4),
                 ),
               ],
             ),
@@ -189,9 +204,18 @@ class _MainDashboardState extends State<MainDashboard>
                       height: 42,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: Colors.white.withOpacity(0.15),
-                        border: Border.all(
-                            color: Colors.white.withOpacity(0.3), width: 1.5),
+                        gradient: LinearGradient(
+                          colors: [_indigo, _teal],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: _teal.withOpacity(0.25),
+                            blurRadius: 10,
+                            spreadRadius: 0,
+                          ),
+                        ],
                       ),
                       child: const Icon(Icons.person_rounded,
                           color: Colors.white, size: 22),
@@ -295,12 +319,16 @@ class _MainDashboardState extends State<MainDashboard>
                       onTap: () async {
                         await FirebaseAuth.instance.signOut();
                       },
-                      borderRadius: BorderRadius.circular(10),
+                      borderRadius: BorderRadius.circular(12),
                       child: Container(
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(10),
+                          color: _indigo.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: _indigo.withOpacity(0.3),
+                            width: 1,
+                          ),
                         ),
                         child: const Icon(Icons.logout_rounded,
                             color: Colors.white70, size: 20),
@@ -326,17 +354,26 @@ class _MainDashboardState extends State<MainDashboard>
         ),
       ),
 
-      // ── Floating bottom nav ──────────────────
+      // ── Floating bottom nav ────────────────────
       bottomNavigationBar: Padding(
         padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
         child: Container(
-          height: 68,
+          height: 60,
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
           decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(28),
+            color: isDark ? _card : _cardLight,
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(
+              color: isDark
+                  ? Colors.white.withOpacity(0.07)
+                  : Colors.black.withOpacity(0.08),
+              width: 1,
+            ),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.12),
+                color: isDark
+                    ? Colors.black.withOpacity(0.4)
+                    : Colors.black.withOpacity(0.1),
                 blurRadius: 24,
                 offset: const Offset(0, 8),
               ),
@@ -355,12 +392,18 @@ class _MainDashboardState extends State<MainDashboard>
                     duration: const Duration(milliseconds: 250),
                     curve: Curves.easeOutCubic,
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 10),
+                        horizontal: 10, vertical: 5),
                     decoration: BoxDecoration(
                       color: selected
-                          ? _indigo.withOpacity(0.1)
+                          ? _teal.withOpacity(0.15)
                           : Colors.transparent,
-                      borderRadius: BorderRadius.circular(18),
+                      borderRadius: BorderRadius.circular(12),
+                      border: selected
+                          ? Border.all(
+                              color: _teal.withOpacity(0.35),
+                              width: 1,
+                            )
+                          : null,
                     ),
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
@@ -370,18 +413,22 @@ class _MainDashboardState extends State<MainDashboard>
                           child: Icon(
                             _navItems[i].icon,
                             key: ValueKey(selected),
-                            color: selected ? _indigo : Colors.grey.shade400,
-                            size: selected ? 26 : 22,
+                            color: selected
+                                ? _teal
+                                : (isDark ? _textMuted : _textMutedLight),
+                            size: selected ? 20 : 18,
                           ),
                         ),
-                        const SizedBox(height: 3),
+                        const SizedBox(height: 2),
                         AnimatedDefaultTextStyle(
                           duration: const Duration(milliseconds: 200),
                           style: TextStyle(
-                            fontSize: selected ? 11 : 10,
+                            fontSize: selected ? 10 : 9,
                             fontWeight:
                                 selected ? FontWeight.w700 : FontWeight.w400,
-                            color: selected ? _indigo : Colors.grey.shade400,
+                            color: selected
+                                ? _teal
+                                : (isDark ? _textMuted : _textMutedLight),
                           ),
                           child: Text(_navItems[i].label),
                         ),

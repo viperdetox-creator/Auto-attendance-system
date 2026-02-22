@@ -2,6 +2,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/services/attendance_service.dart';
+import '../../core/utils/attendance_record_utils.dart';
 import '../../data/database_helper.dart';
 
 class HistoryScreen extends StatefulWidget {
@@ -72,10 +73,11 @@ class _HistoryScreenState extends State<HistoryScreen>
   Future<void> _loadMonthData() async {
     setState(() => _calendarLoading = true);
     final all = await DatabaseHelper.instance.getAllAttendance();
+    final consolidated = consolidateRecordsByDate(all);
     final ym = '${_focusedMonth.year}-'
         '${_focusedMonth.month.toString().padLeft(2, '0')}';
     final Map<String, Map<String, dynamic>> filtered = {};
-    for (final r in all) {
+    for (final r in consolidated) {
       final d = r['date'] as String? ?? '';
       if (d.startsWith(ym)) filtered[d.substring(0, 10)] = r;
     }
@@ -108,8 +110,9 @@ class _HistoryScreenState extends State<HistoryScreen>
       context.read<AttendanceService>().fetchHistory();
     });
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
-      backgroundColor: _bg,
+      backgroundColor: isDark ? _bg : Theme.of(context).scaffoldBackgroundColor,
       body: Stack(
         children: [
           _buildOrbBg(),
@@ -583,18 +586,20 @@ class _HistoryScreenState extends State<HistoryScreen>
           ],
         ),
         const SizedBox(height: 12),
-        service.history.isEmpty ? _emptyState() : _buildLogList(service),
+        _buildLogList(service),
       ],
     );
   }
 
   Widget _buildLogList(AttendanceService service) {
+    final consolidated = consolidateRecordsByDate(service.history);
+    if (consolidated.isEmpty) return _emptyState();
     return ListView.builder(
-      itemCount: service.history.length,
+      itemCount: consolidated.length,
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       itemBuilder: (ctx, i) {
-        final r = service.history[i];
+        final r = consolidated[i];
         final type = r['attendance_type'] as String? ?? 'FULL';
         final grace = r['used_grace_minutes'] ?? 0;
         final Color c = type == 'LEAVE'

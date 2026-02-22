@@ -78,8 +78,9 @@ class _ManualPunchScreenState extends State<ManualPunchScreen>
     return Consumer<AttendanceService>(
       builder: (context, service, _) {
         final isIn = service.isPunchedIn;
+        final isDark = Theme.of(context).brightness == Brightness.dark;
         return Scaffold(
-          backgroundColor: _bg,
+          backgroundColor: isDark ? _bg : Theme.of(context).scaffoldBackgroundColor,
           body: Stack(
             children: [
               _buildOrbBackground(),
@@ -225,6 +226,14 @@ class _ManualPunchScreenState extends State<ManualPunchScreen>
           GestureDetector(
             onTap: () async {
               HapticFeedback.heavyImpact();
+              // Punch OUT is always allowed; Punch IN has restrictions
+              if (!isIn) {
+                final restriction = _checkPunchInRestriction();
+                if (restriction != null) {
+                  _showRestrictionDialog(restriction);
+                  return;
+                }
+              }
               await service.handlePunch(punchType: 'manual');
               if (mounted) {
                 _showToast(
@@ -478,6 +487,70 @@ class _ManualPunchScreenState extends State<ManualPunchScreen>
     return FadeTransition(
       opacity: _cardFade[i],
       child: SlideTransition(position: _cardSlide[i], child: child),
+    );
+  }
+
+  /// Returns restriction message if punch-in is not allowed, null otherwise.
+  String? _checkPunchInRestriction() {
+    final now = DateTime.now();
+    if (now.weekday == DateTime.sunday) {
+      return 'Punch in is not allowed on Sunday.';
+    }
+    if (now.hour > 16 || (now.hour == 16 && now.minute >= 30)) {
+      return 'Punch in is not possible after 4:30 PM.';
+    }
+    return null;
+  }
+
+  void _showRestrictionDialog(String message) {
+    showDialog(
+      context: context,
+      builder: (ctx) => Dialog(
+        backgroundColor: _card,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: _rose.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: const Icon(Icons.block_rounded, color: _rose, size: 28),
+              ),
+              const SizedBox(height: 16),
+              const Text('Punch In Not Allowed',
+                  style: TextStyle(
+                      color: _textPri,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w800)),
+              const SizedBox(height: 8),
+              Text(message,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(color: _textSec, fontSize: 14)),
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: _rose,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12)),
+                    elevation: 0,
+                  ),
+                  child: const Text('OK', style: TextStyle(fontWeight: FontWeight.w700)),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 

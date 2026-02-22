@@ -1,6 +1,5 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../../core/services/attendance_service.dart';
 
@@ -35,7 +34,6 @@ class _AttendanceScreenState extends State<AttendanceScreen>
   static const _card = Color(0xFF1C2333);
   static const _surface = Color(0xFF131929);
   static const _teal = Color(0xFF00D4B8);
-  static const _tealDark = Color(0xFF00A896);
   static const _rose = Color(0xFFFF6B8A);
   static const _amber = Color(0xFFFFB347);
   static const _indigo = Color(0xFF6C7FE8);
@@ -92,14 +90,14 @@ class _AttendanceScreenState extends State<AttendanceScreen>
     });
 
     // Staggered card entry
-    _cardFade = List.generate(5, (i) {
+    _cardFade = List.generate(4, (i) {
       final start = i * 0.14;
       final end = (start + 0.45).clamp(0.0, 1.0);
       return Tween<double>(begin: 0.0, end: 1.0).animate(CurvedAnimation(
           parent: _entryCtrl,
           curve: Interval(start, end, curve: Curves.easeOut)));
     });
-    _cardSlide = List.generate(5, (i) {
+    _cardSlide = List.generate(4, (i) {
       final start = i * 0.14;
       final end = (start + 0.5).clamp(0.0, 1.0);
       return Tween<Offset>(begin: const Offset(0, 0.35), end: Offset.zero)
@@ -152,8 +150,9 @@ class _AttendanceScreenState extends State<AttendanceScreen>
             ? _amber
             : _teal;
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
-      backgroundColor: _bg,
+      backgroundColor: isDark ? _bg : Theme.of(context).scaffoldBackgroundColor,
       body: Stack(
         children: [
           _buildOrbBg(),
@@ -191,11 +190,6 @@ class _AttendanceScreenState extends State<AttendanceScreen>
 
                       // ── Stats strip ──────────────
                       _animated(3, _buildStatsStrip(service)),
-                      const SizedBox(height: 20),
-
-                      // ── Punch button ─────────────
-                      _animated(
-                          4, _buildPunchButton(context, service, isPunchedIn)),
                       const SizedBox(height: 32),
                     ],
                   ),
@@ -731,77 +725,6 @@ class _AttendanceScreenState extends State<AttendanceScreen>
 
   Widget _vDivider() =>
       Container(height: 36, width: 1, color: Colors.white.withOpacity(0.07));
-
-  // ── Punch button ──────────────────────────────
-  Widget _buildPunchButton(
-      BuildContext context, AttendanceService service, bool isPunchedIn) {
-    final Color btnColor = isPunchedIn ? _rose : _teal;
-    return TweenAnimationBuilder<double>(
-      tween: Tween(begin: 0.92, end: 1.0),
-      duration: const Duration(milliseconds: 700),
-      curve: Curves.elasticOut,
-      builder: (_, scale, child) => Transform.scale(scale: scale, child: child),
-      child: GestureDetector(
-        onTap: () async {
-          HapticFeedback.heavyImpact();
-          await service.handlePunch(punchType: 'manual');
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-              behavior: SnackBarBehavior.floating,
-              backgroundColor: btnColor,
-              margin: const EdgeInsets.all(16),
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14)),
-              content: Text(
-                isPunchedIn ? '✓ Punched Out' : '✓ Punched In',
-                style: const TextStyle(
-                    color: Colors.white, fontWeight: FontWeight.w700),
-              ),
-              duration: const Duration(seconds: 2),
-            ));
-          }
-        },
-        child: Container(
-          width: double.infinity,
-          height: 58,
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: isPunchedIn
-                  ? [_rose, const Color(0xFFFF4D6D)]
-                  : [_teal, _tealDark],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            borderRadius: BorderRadius.circular(18),
-            boxShadow: [
-              BoxShadow(
-                  color: btnColor.withOpacity(0.4),
-                  blurRadius: 20,
-                  offset: const Offset(0, 6)),
-            ],
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                isPunchedIn ? Icons.logout_rounded : Icons.fingerprint_rounded,
-                color: Colors.white,
-                size: 22,
-              ),
-              const SizedBox(width: 10),
-              Text(
-                isPunchedIn ? 'Manual Punch Out' : 'Manual Punch In',
-                style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 16),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
 
   // ── Reusable dark card ────────────────────────
   Widget _darkCard({required Widget child}) {

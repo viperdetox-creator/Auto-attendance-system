@@ -46,10 +46,13 @@ Future<void> main() async {
   await _checkPermissions();
   await initializeService();
 
+  final themeController = ThemeController();
+  await themeController.loadFromPrefs();
+
   runApp(
     MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (_) => ThemeController()),
+        ChangeNotifierProvider<ThemeController>.value(value: themeController),
         ChangeNotifierProvider(create: (_) => AttendanceService()),
       ],
       child: const MyApp(),
@@ -260,8 +263,14 @@ class MyApp extends StatelessWidget {
         debugShowCheckedModeBanner: false,
         themeMode: themeController.themeMode,
         theme: ThemeData(
-            useMaterial3: true, colorSchemeSeed: const Color(0xFF4F46E5)),
-        darkTheme: ThemeData.dark(useMaterial3: true),
+          useMaterial3: true,
+          colorSchemeSeed: const Color(0xFF4F46E5),
+          brightness: Brightness.light,
+          scaffoldBackgroundColor: const Color(0xFFF5F5F8),
+        ),
+        darkTheme: ThemeData.dark(useMaterial3: true).copyWith(
+          scaffoldBackgroundColor: const Color(0xFF0A0E1A),
+        ),
         routes: {
           '/signup': (context) => const SignupScreen(),
           '/login': (context) => const LoginScreen(),
